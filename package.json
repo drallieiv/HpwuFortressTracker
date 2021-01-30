@@ -18,6 +18,7 @@
     "gatsby": "^2.26.1",
     "gatsby-plugin-offline": "^3.9.0",
     "gatsby-plugin-sass": "^3.1.0",
+    "moment": "^2.29.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "sass": "^1.32.5"

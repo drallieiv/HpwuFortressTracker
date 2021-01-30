@@ -1,0 +1,83 @@
+button, div[role=button] {
+  cursor: pointer;
+}
+
+main {
+  max-width: 1200px;
+  margin: auto;
+}
+
+$chamberButtonWidth: 65px;
+$chamberButtonHeight: 50px;
+
+div.topSection {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  > * {
+    border: 1px solid black;
+    margin: 1px;
+    padding : 5px 20px ;
+    flex-grow: 0;
+    flex-basis: 5 * ($chamberButtonWidth + 10px);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+}
+
+label {
+  min-width: 120px;
+  display: inline-block;
+}
+
+.optionSelector {
+  display: flex;
+  flex-wrap: wrap;
+  width: 5 * ($chamberButtonWidth + 10px);
+
+  .option {
+    border: 1px solid black;
+    margin: 1px;
+    width: $chamberButtonWidth;
+    height: $chamberButtonHeight;
+    padding: 3px;
+    font-weight: bold;
+    font-size: .8em;
+    text-align: center;
+    line-height: $chamberButtonHeight;
+    &.selected:hover, &.selected {
+      background-color: #2e2e2e;
+      color: white;
+    } 
+    &:hover {
+      background-color: #c7c7c7;
+    }
+  }
+  .option.playerCount{
+    width: $chamberButtonWidth / 6 * 5 - 2px;
+  }
+}
+
+button {
+  font-weight: bold;
+  width: $chamberButtonWidth;
+  height: $chamberButtonHeight;
+}
+
+.startBar, .logBar {
+  display: flex;
+  margin: 20px 0;
+  button {
+    margin-right: 20px;
+  }
+  .runningTime {
+    line-height: $chamberButtonHeight;
+  }
+}
+
+textarea#log {
+  width: 100%;
+  height: 200px;
+}
