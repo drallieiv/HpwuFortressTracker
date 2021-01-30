@@ -365,6 +365,7 @@ class Stats extends React.Component {
     let chart = am4core.create(divRef, am4charts.XYChart);
 
     chart.legend = new am4charts.Legend();
+    chart.exporting.menu = new am4core.ExportMenu();
 
     chart.colors.list = [
       am4core.color("#046b00"),
@@ -413,6 +414,7 @@ class Stats extends React.Component {
     let chart = am4core.create(divRef, am4charts.XYChart);
 
     chart.legend = new am4charts.Legend();
+    chart.exporting.menu = new am4core.ExportMenu();
 
     chart.colors.list = [
       am4core.color("#046b00"),
