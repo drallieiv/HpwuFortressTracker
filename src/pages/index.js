@@ -345,6 +345,8 @@ class Stats extends React.Component {
       }
     })
 
+    computedData.sort((a,b) => a.roomLevel - b.roomLevel)
+
     console.log("computedData ", computedData);
 
     this.dropRatePerRoomChart.data = computedData;
