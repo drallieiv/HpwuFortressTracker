@@ -2,16 +2,18 @@ import * as React from "react"
 import * as moment from 'moment';
 import "./../styles/app.scss"
 
+import * as am4core from "@amcharts/amcharts4/core";
+import * as am4charts from "@amcharts/amcharts4/charts";
 
 // styles
 const pageStyles = {
   color: "#232129",
-  padding: "96px",
+  padding: "25px 96px",
   fontFamily: "-apple-system, Roboto, sans-serif, serif",
 }
 const headingStyles = {
   marginTop: 0,
-  marginBottom: 64
+  marginBottom: 12
 }
 
 const chambers = [
@@ -56,10 +58,11 @@ class Tracker extends React.Component {
       chamber: chambers[0],
       rune: 1,
       playerCount: 1
-    }
+    },
+    data: []
   }
 
-  updateScenario(scenario) {
+  updateScenario = (scenario) => {
     this.setState((state) => {
       state.scenario = scenario;
       console.log("New Scenario : " + JSON.stringify(scenario));
@@ -67,15 +70,21 @@ class Tracker extends React.Component {
     })
   }
 
+  addData = (newData) => {
+    let data = this.state.data;
+    data.push(newData)
+    this.setState({data: data});
+  }
+
   render() {
     return (
       <div>
         <div className='topSection'>
-          <SelectScenario scenario={this.state.scenario} onScenarioChange={this.updateScenario.bind(this)}/>
-          <PlayScenario scenario={this.state.scenario}/>
+          <SelectScenario scenario={this.state.scenario} onScenarioChange={this.updateScenario}/>
+          <PlayScenario scenario={this.state.scenario} onNewData={this.addData}/>
         </div>
         <div className='statsSection'>
-          <Stats/>
+          <Stats data={this.state.data}/>
         </div>
       </div>
     )
@@ -177,11 +186,18 @@ class PlayScenario extends React.Component {
     running: false,
     startTime: null,
     scenario: null,
+    autoRestart: true,
   }
 
   constructor(props) {
     super(props);
     this.state.scenario = props.scenario;
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if(nextProps.scenario !== undefined) {
+      this.setState({scenario: nextProps.scenario});
+    }    
   }
 
   start = () => {
@@ -195,8 +211,6 @@ class PlayScenario extends React.Component {
   }
 
   stop = (status) => {
-    console.log("Stop with status : " + status );
-
     let data = {
       scenario: this.state.scenario,
       drop: status === "drop",
@@ -204,27 +218,42 @@ class PlayScenario extends React.Component {
     };
 
     if (this.state.running) {
-      this.setState({running: false});
       clearInterval(this.refreshIntervalId);
-
-    } else {
-      console.log("Just Log One")
+      data.duration = moment().diff(this.state.startTime);
+      if (this.state.autoRestart) {
+        document.getElementById("fightDuration").innerHTML = "New Fight";
+        this.start();
+      } else {
+        this.setState({running: false});
+      }
     }
 
     this.addData(data);
   }
 
+  end = () => {
+    clearInterval(this.refreshIntervalId);
+    this.setState({running: false, startTime: null});
+  }
+
   addData = (data) => {
-    console.log("Add Data ", data);
+    console.log("Add Data " + JSON.stringify(data));
+    this.props.onNewData(data);
   }
 
   render() {
     let startBar;
     if (this.state.running) {
+      let startButton 
+      if (this.state.autoRestart) {
+        startButton = <button className="fightAction" onClick={this.end}>Stop</button>
+      } else {
+        startButton = <button className="fightAction" disabled>Start</button>
+      }      
       startBar = ( <div className="startBar">
-        <button className="fightAction" disabled>Start</button>
+        {startButton}
         <div>
-          <span className="runningTime" id="fightDuration"></span>
+          <span className="runningTime" id="fightDuration">New Fight</span>
         </div>
       </div>)
     } else {
@@ -246,24 +275,204 @@ class PlayScenario extends React.Component {
           <button onClick={() => {this.stop("failed")}}>Failed</button>
         </div>
       </div>
+      {/*
       <div>
         <h2>
           Log
         </h2>
         <textarea id="log"></textarea>
       </div>
+      */}
     </div>
   )}
 }
 
-const Stats = () => {
-  return (
-    <div>
-      <h2>
-        Statistics Data
-      </h2>
-    </div>
-  )
+class Stats extends React.Component {
+  state = {
+    data: [],
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if(nextProps.data !== undefined) {
+      this.setState({data: nextProps.data}, this.updateChartData);
+    }    
+  }
+
+  updateChartData = () => {
+    console.log("Update Chart data", this.state.data);
+
+    let computedData = [];
+
+    this.state.data
+      .filter((fight) => fight.success === true)
+      .forEach((fight) => {
+        let serie;
+        serie = computedData.find((data) => data.roomLevel === fight.scenario.chamber.level);
+        if (serie == null) {
+          serie = {
+            roomName: fight.scenario.chamber.name,
+            roomLevel: fight.scenario.chamber.level,
+            drop: 0,
+            nodrop: 0,
+            timedDrop: 0,
+            timedFights: 0,
+            timedFightsDuration: 0,
+          };
+          computedData.push(serie);
+        }
+        
+        if (fight.drop) {
+          serie.drop++;
+        } else {
+          serie.nodrop++;
+        }
+
+        if (fight.duration !== undefined) {
+          serie.timedFights++;
+          if (fight.drop) {
+            serie.timedDrop++;
+          }
+          serie.timedFightsDuration += fight.duration;
+        }
+
+      }
+    );
+
+    computedData.forEach((data) => {
+      if (data.timedDrop > 0) {
+        data.averageTimePerDrop = data.timedFightsDuration / data.timedDrop;
+        data.dropsPerHour = 60*60*1000 / data.averageTimePerDrop;
+      }
+    })
+
+    console.log("computedData ", computedData);
+
+    this.dropRatePerRoomChart.data = computedData;
+    this.dropPerHourPerRoomChart.data = computedData;
+
+  }
+
+  scenarioHash(scenario) {
+    return scenario.chamber.level+"|"+scenario.rune+"|"+scenario.playerCount;
+  }
+
+  componentDidMount() {
+    this.dropRatePerRoomChart = this.createDropRatePerRoomChart("dropRatePerRoom");
+    this.dropPerHourPerRoomChart = this.createDropPerHourPerRoomChart("dropPerHourPerRoom");
+  }
+
+  createDropRatePerRoomChart(divRef) {
+    let chart = am4core.create(divRef, am4charts.XYChart);
+
+    chart.legend = new am4charts.Legend();
+
+    chart.colors.list = [
+      am4core.color("#046b00"),
+      am4core.color("rgba(255, 0, 0, 0)"),
+    ];
+
+    let roomAxis = chart.xAxes.push(new am4charts.CategoryAxis());
+    roomAxis.title.text = "Fortress Rooms";
+    roomAxis.dataFields.value = "roomLevel";
+    roomAxis.dataFields.category = "roomName";
+    
+    let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+    valueAxis.title.text = "Drop Rate";
+    valueAxis.min = 0;
+    valueAxis.max = 100;
+    valueAxis.strictMinMax = true;
+    valueAxis.calculateTotals = true;
+    valueAxis.renderer.minWidth = 50;
+
+    var series1 = chart.series.push(new am4charts.ColumnSeries());
+    series1.name = "Drop";
+    series1.dataFields.categoryX = "roomName";
+    series1.dataFields.valueY = "drop";
+    series1.dataFields.valueYShow = "totalPercent";
+    series1.dataItems.template.locations.categoryX = 0.5;
+    series1.stacked = true;
+
+    let bullet1 = series1.bullets.push(new am4charts.LabelBullet());
+    bullet1.interactionsEnabled = false;
+    bullet1.label.text = "{valueY.totalPercent.formatNumber('#.00')}%";
+    bullet1.locationY = 0.5;
+    bullet1.label.fill = am4core.color("#ffffff");
+
+    var series2 = chart.series.push(new am4charts.ColumnSeries());
+    series2.name = "No Drop";
+    series2.dataFields.categoryX = "roomName";
+    series2.dataFields.valueY = "nodrop";
+    series2.dataFields.valueYShow = "totalPercent";
+    series2.dataItems.template.locations.categoryX = 0.5;
+    series2.stacked = true;
+
+    return chart;
+  }
+
+  createDropPerHourPerRoomChart(divRef) {
+    let chart = am4core.create(divRef, am4charts.XYChart);
+
+    chart.legend = new am4charts.Legend();
+
+    chart.colors.list = [
+      am4core.color("#046b00"),
+      am4core.color("rgba(255, 0, 0, 0)"),
+    ];
+
+    let roomAxis = chart.xAxes.push(new am4charts.CategoryAxis());
+    roomAxis.title.text = "Fortress Rooms";
+    roomAxis.dataFields.value = "roomLevel";
+    roomAxis.dataFields.category = "roomName";
+    
+    let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+    valueAxis.title.text = "Drop Per Hour";
+
+    var series1 = chart.series.push(new am4charts.ColumnSeries());
+    series1.name = "Drop";
+    series1.dataFields.categoryX = "roomName";
+    series1.dataFields.valueY = "dropsPerHour";
+    series1.dataItems.template.locations.categoryX = 0.5;
+
+    let bullet1 = series1.bullets.push(new am4charts.LabelBullet());
+    bullet1.interactionsEnabled = false;
+    bullet1.label.text = "{valueY.formatNumber('#.00')}";
+    bullet1.locationY = 0.5;
+    bullet1.label.fill = am4core.color("#ffffff");
+
+    return chart;
+  }
+
+  componentWillUnmount() {
+    if (this.dropRatePerRoomChart) {
+      this.dropRatePerRoomChart.dispose();
+    }
+  }
+
+  render() {
+    return (
+      <div>
+        <h2>
+          Statistics Data
+        </h2>
+        {/*
+        <div>
+          <h3>
+            Raw Data
+          </h3>
+          <ul>
+            {this.state.data.map((event, index) => {
+              return <li key={index}>{this.scenarioHash(event.scenario)} = {event.drop ? "Y" : "N"}</li>
+            })}
+          </ul>
+        </div>
+        */}
+        <div>
+          <div className="statsChart" id="dropRatePerRoom"></div>
+          <div className="statsChart" id="dropPerHourPerRoom"></div>
+        </div>
+      </div>
+    )
+  }
 }
 
 export default IndexPage

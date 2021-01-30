@@ -2,13 +2,32 @@ button, div[role=button] {
   cursor: pointer;
 }
 
+h1 {
+  margin-block-start: 0.2em;
+  margin-block-end: 0.5em;
+}
+h2 {
+  margin-block-start: 0.25em;
+  margin-block-end: 0.7em;
+}
+h3 {
+  margin-block-start: 0.2em;
+  margin-block-end: 0.5em;
+}
+
 main {
   max-width: 1200px;
   margin: auto;
 }
 
-$chamberButtonWidth: 65px;
-$chamberButtonHeight: 50px;
+.statsSection {
+  margin-top: 25px;
+}
+
+$scenarioButtonWidth: 65px;
+$chamberButtonHeight: 30px;
+$fightButtonWidth: 80px;
+$fightButtonHeight: $chamberButtonHeight;
 
 div.topSection {
   display: flex;
@@ -19,7 +38,7 @@ div.topSection {
     margin: 1px;
     padding : 5px 20px ;
     flex-grow: 0;
-    flex-basis: 5 * ($chamberButtonWidth + 10px);
+    flex-basis: 5 * ($scenarioButtonWidth + 10px);
 
     display: flex;
     flex-direction: column;
@@ -35,12 +54,12 @@ label {
 .optionSelector {
   display: flex;
   flex-wrap: wrap;
-  width: 5 * ($chamberButtonWidth + 10px);
+  width: 5 * ($scenarioButtonWidth + 10px);
 
   .option {
     border: 1px solid black;
     margin: 1px;
-    width: $chamberButtonWidth;
+    width: $scenarioButtonWidth;
     height: $chamberButtonHeight;
     padding: 3px;
     font-weight: bold;
@@ -56,14 +75,14 @@ label {
     }
   }
   .option.playerCount{
-    width: $chamberButtonWidth / 6 * 5 - 2px;
+    width: $scenarioButtonWidth / 6 * 5 - 2px;
   }
 }
 
 button {
   font-weight: bold;
-  width: $chamberButtonWidth;
-  height: $chamberButtonHeight;
+  width: $fightButtonWidth;
+  height: $fightButtonHeight;
 }
 
 .startBar, .logBar {
@@ -81,3 +100,10 @@ textarea#log {
   width: 100%;
   height: 200px;
 }
+
+.statsChart {
+  width: 80%;
+  height: 400px;
+}
+
+
